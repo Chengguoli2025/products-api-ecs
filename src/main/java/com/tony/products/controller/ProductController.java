@@ -1,17 +1,23 @@
 package com.tony.products.controller;
 
+import com.tony.products.enums.ProductType;
 import com.tony.products.model.Product;
+import com.tony.products.service.ProductService;
+import com.tony.products.service.ProductServiceFactory;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.util.Arrays;
 import java.util.List;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/products")
 public class ProductController {
+
+    private final ProductServiceFactory productServiceFactory;
 
     @PostMapping
     public ResponseEntity<Product> createProduct(@RequestBody Product product) {
@@ -20,11 +26,12 @@ public class ProductController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> products = Arrays.asList(
-            new Product(1L, "Laptop", "Gaming laptop", new BigDecimal("999.99"), 10),
-            new Product(2L, "Phone", "Smartphone", new BigDecimal("599.99"), 25)
-        );
+    public ResponseEntity<List<Product>> getAllProducts(
+            @RequestParam(name = "product_type") final ProductType productType
+            )
+    {
+        ProductService productService = productServiceFactory.getProductService(productType);
+        List<Product> products = productService.getAllProducts();
         return new ResponseEntity<>(products, HttpStatus.OK);
     }
 
