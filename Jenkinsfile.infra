@@ -16,40 +16,46 @@ pipeline {
         stage('Validate Template') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
-                sh 'aws cloudformation validate-template --template-body file://infra/template.yaml'
+                withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
+                    sh 'aws cloudformation validate-template --template-body file://infra/template.yaml'
+                }
             }
         }
         
         stage('Deploy Infrastructure') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
-                sh """
-                    aws cloudformation deploy \
-                        --template-file infra/template.yaml \
-                        --stack-name ${STACK_NAME} \
-                        --parameter-overrides \
-                            Environment=${params.ENVIRONMENT} \
-                            AccountId=${AWS_ACCOUNT_ID} \
-                            DomainName=tonyffenochezra.com \
-                        --capabilities CAPABILITY_IAM \
-                        --region ${AWS_REGION} \
-                        --no-fail-on-empty-changeset
-                """
+                withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
+                    sh """
+                        aws cloudformation deploy \
+                            --template-file infra/template.yaml \
+                            --stack-name ${STACK_NAME} \
+                            --parameter-overrides \
+                                Environment=${params.ENVIRONMENT} \
+                                AccountId=${AWS_ACCOUNT_ID} \
+                                DomainName=tonyffenochezra.com \
+                            --capabilities CAPABILITY_IAM \
+                            --region ${AWS_REGION} \
+                            --no-fail-on-empty-changeset
+                    """
+                }
             }
         }
         
         stage('Delete Infrastructure') {
             when { expression { params.ACTION == 'delete' } }
             steps {
-                sh """
-                    aws cloudformation delete-stack \
-                        --stack-name ${STACK_NAME} \
-                        --region ${AWS_REGION}
-                    
-                    aws cloudformation wait stack-delete-complete \
-                        --stack-name ${STACK_NAME} \
-                        --region ${AWS_REGION}
-                """
+                withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
+                    sh """
+                        aws cloudformation delete-stack \
+                            --stack-name ${STACK_NAME} \
+                            --region ${AWS_REGION}
+                        
+                        aws cloudformation wait stack-delete-complete \
+                            --stack-name ${STACK_NAME} \
+                            --region ${AWS_REGION}
+                    """
+                }
             }
         }
     }
