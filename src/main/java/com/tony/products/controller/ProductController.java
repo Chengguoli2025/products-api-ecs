@@ -20,9 +20,12 @@ public class ProductController {
     private final ProductServiceFactory productServiceFactory;
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody Product product) {
-        product.setId(3L);
-        return new ResponseEntity<>(product, HttpStatus.CREATED);
+    public ResponseEntity<Product> createProduct(
+            @RequestBody Product product,
+            @RequestParam(name = "product_type") final ProductType productType) {
+        ProductService productService = productServiceFactory.getProductService(productType);
+        Product createdProduct = productService.createProduct(product);
+        return new ResponseEntity<>(createdProduct, HttpStatus.CREATED);
     }
 
     @GetMapping
@@ -36,11 +39,31 @@ public class ProductController {
     }
 
     @GetMapping("/{productId}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long productId) {
-        if (productId == 1L) {
-            Product product = new Product(1L, "Laptop", "Gaming laptop", new BigDecimal("999.99"), 10);
-            return new ResponseEntity<>(product, HttpStatus.OK);
-        }
-        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<Product> getProductById(
+            @PathVariable Long productId,
+            @RequestParam(name = "product_type") final ProductType productType) {
+        ProductService productService = productServiceFactory.getProductService(productType);
+        return productService.getProductById(productId)
+                .map(product -> new ResponseEntity<>(product, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    @PutMapping("/{productId}")
+    public ResponseEntity<Product> updateProduct(
+            @PathVariable Long productId,
+            @RequestBody Product product,
+            @RequestParam(name = "product_type") final ProductType productType) {
+        ProductService productService = productServiceFactory.getProductService(productType);
+        Product updatedProduct = productService.updateProduct(productId, product);
+        return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/{productId}")
+    public ResponseEntity<Void> deleteProduct(
+            @PathVariable Long productId,
+            @RequestParam(name = "product_type") final ProductType productType) {
+        ProductService productService = productServiceFactory.getProductService(productType);
+        productService.deleteProduct(productId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
