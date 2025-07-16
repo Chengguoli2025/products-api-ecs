@@ -1,0 +1,27 @@
+# application-dev.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/productdb
+    username: postgres
+    password: password
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+
+aws:
+  ssm:
+    db-password-parameter: /product-api/dev/db-password
+  cognito:
+    issuer-uri: https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_DEV_POOL_ID
+
+external-services:
+  notification-service:
+    url: https://notification-service.dev.tonyffenochezra.com
+  inventory-service:
+    url: https://inventory-service.dev.tonyffenochezra.com
+
+logging:
+  level:
+    com.tonyffenochezra.productapi: DEBUG
+    org.springframework.security: DEBUG

@@ -1,0 +1,26 @@
+# application-prod.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://product-api-prod.cluster-xyz.ap-southeast-2.rds.amazonaws.com:5432/productdb
+    username: productapi
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+aws:
+  ssm:
+    db-password-parameter: /product-api/prod/db-password
+  cognito:
+    issuer-uri: https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_PROD_POOL_ID
+
+external-services:
+  notification-service:
+    url: https://notification-service.prod.tonyffenochezra.com
+  inventory-service:
+    url: https://inventory-service.prod.tonyffenochezra.com
+
+logging:
+  level:
+    com.tonyffenochezra.productapi: WARN
+    org.springframework.security: ERROR
