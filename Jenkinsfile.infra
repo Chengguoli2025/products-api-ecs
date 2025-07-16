@@ -1,0 +1,65 @@
+pipeline {
+    agent any
+    
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Environment to deploy')
+        choice(name: 'ACTION', choices: ['deploy', 'delete'], description: 'Action to perform')
+    }
+    
+    environment {
+        AWS_ACCOUNT_ID = '427260910901'
+        AWS_REGION = 'ap-southeast-2'
+        STACK_NAME = "products-api-ecs-${params.ENVIRONMENT}"
+    }
+    
+    stages {
+        stage('Validate Template') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                sh 'aws cloudformation validate-template --template-body file://infra/template.yaml'
+            }
+        }
+        
+        stage('Deploy Infrastructure') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                sh """
+                    aws cloudformation deploy \
+                        --template-file infra/template.yaml \
+                        --stack-name ${STACK_NAME} \
+                        --parameter-overrides \
+                            Environment=${params.ENVIRONMENT} \
+                            AccountId=${AWS_ACCOUNT_ID} \
+                            DomainName=tonyffenochezra.com \
+                        --capabilities CAPABILITY_IAM \
+                        --region ${AWS_REGION} \
+                        --no-fail-on-empty-changeset
+                """
+            }
+        }
+        
+        stage('Delete Infrastructure') {
+            when { expression { params.ACTION == 'delete' } }
+            steps {
+                sh """
+                    aws cloudformation delete-stack \
+                        --stack-name ${STACK_NAME} \
+                        --region ${AWS_REGION}
+                    
+                    aws cloudformation wait stack-delete-complete \
+                        --stack-name ${STACK_NAME} \
+                        --region ${AWS_REGION}
+                """
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "Infrastructure ${params.ACTION} completed successfully for ${params.ENVIRONMENT}"
+        }
+        failure {
+            echo "Infrastructure ${params.ACTION} failed for ${params.ENVIRONMENT}"
+        }
+    }
+}
