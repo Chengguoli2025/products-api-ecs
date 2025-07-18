@@ -1,26 +1,15 @@
 # application-dev.yml
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/products_db
-    username: products_user
-    password: products_pass
+    url: jdbc:postgresql://postgres.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com:5432/postgres
+    username: postgres
+    password: 12345678
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: create-drop
     show-sql: true
 
-aws:
-  ssm:
-    db-password-parameter: /product-api/dev/db-password
-  cognito:
-    issuer-uri: https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_DEV_POOL_ID
-
-external-services:
-  notification-service:
-    url: https://notification-service.dev.tonyffenochezra.com
-  inventory-service:
-    url: https://inventory-service.dev.tonyffenochezra.com
 
 logging:
   level:
