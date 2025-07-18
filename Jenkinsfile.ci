@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+    
+    parameters {
+        string(name: 'IMAGE_TAG', defaultValue: 'latest', description: 'Docker image tag')
+    }
+    
+    environment {
+        AWS_ACCOUNT_ID = '427260910901'
+        AWS_REGION = 'ap-southeast-2'
+        ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/products-api"
+        IMAGE_URI = "${ECR_REPO}:${params.IMAGE_TAG}"
+    }
+    
+    stages {
+        stage('Build') {
+            steps {
+                sh '''
+                    # Pull base image explicitly with retry logic
+                    MAX_RETRIES=3
+                    RETRY_COUNT=0
+                    until docker pull eclipse-temurin:17-jdk-alpine || [ $RETRY_COUNT -eq $MAX_RETRIES ]; do
+                        echo "Failed to pull base image, retrying..."
+                        RETRY_COUNT=$((RETRY_COUNT+1))
+                        sleep 10
+                    done
+                    
+                    if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+                        echo "Failed to pull base image after $MAX_RETRIES attempts"
+                        exit 1
+                    fi
+                    
+                    # Build the image
+                    docker build -t products-api .
+                '''
+                sh "docker tag products-api:latest ${IMAGE_URI}"
+            }
+        }
+        
+        stage('Push to ECR') {
+            steps {
+                withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
+                    sh """
+                        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REPO}
+                        docker push ${IMAGE_URI}
+                    """
+                }
+            }
+        }
+    }
+}
