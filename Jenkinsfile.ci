@@ -4,12 +4,25 @@ pipeline {
     environment {
         AWS_ACCOUNT_ID = '427260910901'
         AWS_REGION = 'ap-southeast-2'
-        ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/products-api"
+        ECR_REPO_NAME = 'products-api'
+        ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
         GIT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
         IMAGE_URI = "${ECR_REPO}:${GIT_SHA}"
     }
     
     stages {
+        stage('Create ECR Repository') {
+            steps {
+                withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
+                    sh """
+                        # Check if repository exists, create if it doesn't
+                        aws ecr describe-repositories --repository-names ${ECR_REPO_NAME} || \
+                        aws ecr create-repository --repository-name ${ECR_REPO_NAME}
+                    """
+                }
+            }
+        }
+        
         stage('Build') {
             steps {
                 sh 'docker build -t products-api .'
