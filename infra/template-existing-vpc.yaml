@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Conditions:
-  UseSingleSubnet: !Equals [!Ref SingleSubnetDeployment, 'true']
+
 
 Parameters:
   Environment:
@@ -16,23 +15,8 @@ Parameters:
   VpcId:
     Type: String
     Default: 'vpc-03b72cde5edbd5472'
-  PublicSubnet1Id:
-    Type: String
-    Description: ID of the first public subnet in the existing VPC
-  PublicSubnet2Id:
-    Type: String
-    Description: ID of the second public subnet in the existing VPC
-  PrivateSubnet1Id:
-    Type: String
-    Description: ID of the first private subnet in the existing VPC
-  PrivateSubnet2Id:
-    Type: String
-    Description: ID of the second private subnet in the existing VPC
-  SingleSubnetDeployment:
-    Type: String
-    Default: 'false'
-    AllowedValues: ['true', 'false']
-    Description: Set to true to deploy with a single subnet (for testing only)
+
+
 
 Resources:
   ALBSecurityGroup:
@@ -67,10 +51,9 @@ Resources:
       Name: !Sub 'products-api-${Environment}-alb'
       Scheme: internet-facing
       Type: application
-      Subnets: !If 
-        - UseSingleSubnet
-        - [!Ref PublicSubnet1Id]
-        - [!Ref PublicSubnet1Id, !Ref PublicSubnet2Id]
+      Subnets:
+        - subnet-09ff13fc14a20db6b
+        - subnet-096ddfd502c857f53
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -134,10 +117,8 @@ Resources:
         AwsvpcConfiguration:
           SecurityGroups:
             - !Ref ECSSecurityGroup
-          Subnets: !If 
-            - UseSingleSubnet
-            - [!Ref PrivateSubnet1Id]
-            - [!Ref PrivateSubnet1Id, !Ref PrivateSubnet2Id]
+          Subnets:
+            - subnet-0b066ef635aebfd81
       LoadBalancers:
         - ContainerName: products-api
           ContainerPort: 8090
