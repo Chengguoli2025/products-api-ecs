@@ -4,6 +4,7 @@ pipeline {
     parameters {
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Environment to deploy')
         choice(name: 'ACTION', choices: ['deploy', 'delete'], description: 'Action to perform')
+        string(name: 'DUMMY_IMAGE', defaultValue: 'public.ecr.aws/amazonlinux/amazonlinux:latest', description: 'Dummy image to use for initial deployment')
     }
     
     environment {
@@ -22,13 +23,23 @@ pipeline {
             }
         }
         
+        stage('Create Modified Template') {
+            when { expression { params.ACTION == 'deploy' } }
+            steps {
+                sh """
+                    # Create a temporary modified template with the dummy image
+                    sed 's|Image: !Sub .\\{1,\\}|Image: ${params.DUMMY_IMAGE}|g' infra/template.yaml > infra/template-modified.yaml
+                """
+            }
+        }
+        
         stage('Deploy Infrastructure') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
                 withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
                     sh """
                         aws cloudformation deploy \
-                            --template-file infra/template.yaml \
+                            --template-file infra/template-modified.yaml \
                             --stack-name ${STACK_NAME} \
                             --parameter-overrides \
                                 Environment=${params.ENVIRONMENT} \
