@@ -65,7 +65,8 @@ Resources:
       Scheme: internet-facing
       Type: application
       Subnets: 
-        - !Ref PublicSubnet1Id
+        - subnet-09ff13fc14a20db6b
+        - subnet-096ddfd502c857f53
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
