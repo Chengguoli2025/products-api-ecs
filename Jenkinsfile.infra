@@ -6,10 +6,10 @@ pipeline {
         choice(name: 'ACTION', choices: ['deploy', 'delete'], description: 'Action to perform')
         string(name: 'DUMMY_IMAGE', defaultValue: 'public.ecr.aws/amazonlinux/amazonlinux:latest', description: 'Dummy image to use for initial deployment')
         string(name: 'VPC_ID', defaultValue: 'vpc-03b72cde5edbd5472', description: 'Existing VPC ID')
-        string(name: 'PUBLIC_SUBNET_1', defaultValue: '', description: 'First public subnet ID in the existing VPC')
-        string(name: 'PUBLIC_SUBNET_2', defaultValue: '', description: 'Second public subnet ID in the existing VPC')
-        string(name: 'PRIVATE_SUBNET_1', defaultValue: '', description: 'First private subnet ID in the existing VPC')
-        string(name: 'PRIVATE_SUBNET_2', defaultValue: '', description: 'Second private subnet ID in the existing VPC')
+        string(name: 'PUBLIC_SUBNET_1', defaultValue: 'subnet-0123456789abcdef0', description: 'First public subnet ID in the existing VPC')
+        string(name: 'PUBLIC_SUBNET_2', defaultValue: 'subnet-0123456789abcdef1', description: 'Second public subnet ID in the existing VPC')
+        string(name: 'PRIVATE_SUBNET_1', defaultValue: 'subnet-0123456789abcdef2', description: 'First private subnet ID in the existing VPC')
+        string(name: 'PRIVATE_SUBNET_2', defaultValue: 'subnet-0123456789abcdef3', description: 'Second private subnet ID in the existing VPC')
     }
     
     environment {
@@ -19,41 +19,6 @@ pipeline {
     }
     
     stages {
-        stage('Fetch Subnet IDs') {
-            when { expression { params.ACTION == 'deploy' && (params.PUBLIC_SUBNET_1 == '' || params.PUBLIC_SUBNET_2 == '' || params.PRIVATE_SUBNET_1 == '' || params.PRIVATE_SUBNET_2 == '') } }
-            steps {
-                withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
-                    script {
-                        // Get all subnets in the VPC
-                        def subnetsJson = sh(script: "aws ec2 describe-subnets --filters 'Name=vpc-id,Values=${params.VPC_ID}' --query 'Subnets[*].[SubnetId,Tags[?Key==`Name`].Value|[0],MapPublicIpOnLaunch]' --output json", returnStdout: true).trim()
-                        def subnets = readJSON text: subnetsJson
-                        
-                        def publicSubnets = []
-                        def privateSubnets = []
-                        
-                        // Categorize subnets as public or private
-                        for (subnet in subnets) {
-                            if (subnet[2]) { // MapPublicIpOnLaunch is true
-                                publicSubnets.add(subnet[0])
-                            } else {
-                                privateSubnets.add(subnet[0])
-                            }
-                        }
-                        
-                        // Set parameters
-                        if (publicSubnets.size() >= 2 && privateSubnets.size() >= 2) {
-                            env.PUBLIC_SUBNET_1 = publicSubnets[0]
-                            env.PUBLIC_SUBNET_2 = publicSubnets[1]
-                            env.PRIVATE_SUBNET_1 = privateSubnets[0]
-                            env.PRIVATE_SUBNET_2 = privateSubnets[1]
-                            echo "Using subnets: Public: ${env.PUBLIC_SUBNET_1}, ${env.PUBLIC_SUBNET_2}, Private: ${env.PRIVATE_SUBNET_1}, ${env.PRIVATE_SUBNET_2}"
-                        } else {
-                            error "Not enough subnets found in VPC ${params.VPC_ID}. Need at least 2 public and 2 private subnets."
-                        }
-                    }
-                }
-            }
-        }
         
         stage('Validate Template') {
             when { expression { params.ACTION == 'deploy' } }
@@ -78,30 +43,23 @@ pipeline {
             when { expression { params.ACTION == 'deploy' } }
             steps {
                 withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
-                    script {
-                        def publicSubnet1 = params.PUBLIC_SUBNET_1 ?: env.PUBLIC_SUBNET_1
-                        def publicSubnet2 = params.PUBLIC_SUBNET_2 ?: env.PUBLIC_SUBNET_2
-                        def privateSubnet1 = params.PRIVATE_SUBNET_1 ?: env.PRIVATE_SUBNET_1
-                        def privateSubnet2 = params.PRIVATE_SUBNET_2 ?: env.PRIVATE_SUBNET_2
-                        
-                        sh """
-                            aws cloudformation deploy \
-                                --template-file infra/template-modified.yaml \
-                                --stack-name ${STACK_NAME} \
-                                --parameter-overrides \
-                                    Environment=${params.ENVIRONMENT} \
-                                    AccountId=${AWS_ACCOUNT_ID} \
-                                    DomainName=tonyffenochezra.com \
-                                    VpcId=${params.VPC_ID} \
-                                    PublicSubnet1Id=${publicSubnet1} \
-                                    PublicSubnet2Id=${publicSubnet2} \
-                                    PrivateSubnet1Id=${privateSubnet1} \
-                                    PrivateSubnet2Id=${privateSubnet2} \
-                                --capabilities CAPABILITY_IAM \
-                                --region ${AWS_REGION} \
-                                --no-fail-on-empty-changeset
-                        """
-                    }
+                    sh """
+                        aws cloudformation deploy \
+                            --template-file infra/template-modified.yaml \
+                            --stack-name ${STACK_NAME} \
+                            --parameter-overrides \
+                                Environment=${params.ENVIRONMENT} \
+                                AccountId=${AWS_ACCOUNT_ID} \
+                                DomainName=tonyffenochezra.com \
+                                VpcId=${params.VPC_ID} \
+                                PublicSubnet1Id=${params.PUBLIC_SUBNET_1} \
+                                PublicSubnet2Id=${params.PUBLIC_SUBNET_2} \
+                                PrivateSubnet1Id=${params.PRIVATE_SUBNET_1} \
+                                PrivateSubnet2Id=${params.PRIVATE_SUBNET_2} \
+                            --capabilities CAPABILITY_IAM \
+                            --region ${AWS_REGION} \
+                            --no-fail-on-empty-changeset
+                    """
                 }
             }
         }
