@@ -6,7 +6,6 @@ pipeline {
         AWS_REGION = 'ap-southeast-2'
         ECR_REPO_NAME = 'products-api'
         ECR_REPO = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO_NAME}"
-        #GIT_SHA = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
         GIT_SHA = "latest"
         IMAGE_URI = "${ECR_REPO}:${GIT_SHA}"
     }
