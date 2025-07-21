@@ -5,11 +5,6 @@ pipeline {
         choice(name: 'ENVIRONMENT', choices: ['dev', 'staging', 'prod'], description: 'Environment to deploy')
         choice(name: 'ACTION', choices: ['deploy', 'delete'], description: 'Action to perform')
         string(name: 'DUMMY_IMAGE', defaultValue: 'public.ecr.aws/amazonlinux/amazonlinux:latest', description: 'Dummy image to use for initial deployment')
-        string(name: 'VPC_ID', defaultValue: 'vpc-03b72cde5edbd5472', description: 'Existing VPC ID')
-        string(name: 'PUBLIC_SUBNET_1', defaultValue: 'subnet-0123456789abcdef0', description: 'First public subnet ID in the existing VPC')
-        string(name: 'PUBLIC_SUBNET_2', defaultValue: 'subnet-0123456789abcdef1', description: 'Second public subnet ID in the existing VPC')
-        string(name: 'PRIVATE_SUBNET_1', defaultValue: 'subnet-0123456789abcdef2', description: 'First private subnet ID in the existing VPC')
-        string(name: 'PRIVATE_SUBNET_2', defaultValue: 'subnet-0123456789abcdef3', description: 'Second private subnet ID in the existing VPC')
         booleanParam(name: 'SINGLE_SUBNET', defaultValue: false, description: 'Use single subnet for deployment (if subnets are duplicated)')
     }
     
@@ -52,11 +47,11 @@ pipeline {
                                 Environment=${params.ENVIRONMENT} \
                                 AccountId=${AWS_ACCOUNT_ID} \
                                 DomainName=tonyffenochezra.com \
-                                VpcId=${params.VPC_ID} \
-                                PublicSubnet1Id=${params.PUBLIC_SUBNET_1} \
-                                PublicSubnet2Id=${params.PUBLIC_SUBNET_2} \
-                                PrivateSubnet1Id=${params.PRIVATE_SUBNET_1} \
-                                PrivateSubnet2Id=${params.PRIVATE_SUBNET_2} \
+                                VpcId=vpc-03b72cde5edbd5472 \
+                                PublicSubnet1Id=subnet-09ff13fc14a20db6b \
+                                PublicSubnet2Id=subnet-09ff13fc14a20db6b \
+                                PrivateSubnet1Id=subnet-0b066ef635aebfd81 \
+                                PrivateSubnet2Id=subnet-0b066ef635aebfd81 \
                                 SingleSubnetDeployment=${params.SINGLE_SUBNET} \
                             --capabilities CAPABILITY_IAM \
                             --region ${AWS_REGION} \
