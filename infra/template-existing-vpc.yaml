@@ -68,9 +68,10 @@ Resources:
       Name: !Sub 'products-api-${Environment}-alb'
       Scheme: internet-facing
       Type: application
-      Subnets:
-        - !Ref PublicSubnet1Id
-        - !If [SingleSubnetDeployment, !Ref PublicSubnet1Id, !Ref PublicSubnet2Id]
+      Subnets: !If 
+        - SingleSubnetDeployment
+        - [!Ref PublicSubnet1Id]
+        - [!Ref PublicSubnet1Id, !Ref PublicSubnet2Id]
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -134,9 +135,10 @@ Resources:
         AwsvpcConfiguration:
           SecurityGroups:
             - !Ref ECSSecurityGroup
-          Subnets:
-            - !Ref PrivateSubnet1Id
-            - !If [SingleSubnetDeployment, !Ref PrivateSubnet1Id, !Ref PrivateSubnet2Id]
+          Subnets: !If 
+            - SingleSubnetDeployment
+            - [!Ref PrivateSubnet1Id]
+            - [!Ref PrivateSubnet1Id, !Ref PrivateSubnet2Id]
           AssignPublicIp: ENABLED
       LoadBalancers:
         - ContainerName: products-api

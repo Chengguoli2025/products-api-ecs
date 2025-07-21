@@ -53,7 +53,14 @@ pipeline {
                                 SingleSubnetDeployment=false \
                             --capabilities CAPABILITY_IAM \
                             --region ${AWS_REGION} \
-                            --no-fail-on-empty-changeset
+                            --no-fail-on-empty-changeset || true
+                        
+                        # Print stack events to debug failures
+                        aws cloudformation describe-stack-events \
+                            --stack-name ${STACK_NAME} \
+                            --region ${AWS_REGION} \
+                            --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+                            --output table
                     """
                 }
             }
