@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-
+Conditions:
+  SingleSubnetDeployment: !Equals [!Ref SingleSubnetDeployment, 'true']
 
 Parameters:
   Environment:
@@ -15,6 +16,22 @@ Parameters:
   VpcId:
     Type: String
     Default: 'vpc-03b72cde5edbd5472'
+  PrivateSubnet1Id:
+    Type: String
+    Default: 'subnet-0b066ef635aebfd81'
+  PrivateSubnet2Id:
+    Type: String
+    Default: 'subnet-0b066ef635aebfd81'
+  PublicSubnet1Id:
+    Type: String
+    Default: 'subnet-09ff13fc14a20db6b'
+  PublicSubnet2Id:
+    Type: String
+    Default: 'subnet-096ddfd502c857f53'
+  SingleSubnetDeployment:
+    Type: String
+    Default: 'true'
+    AllowedValues: ['true', 'false']
 
 
 
@@ -52,8 +69,8 @@ Resources:
       Scheme: internet-facing
       Type: application
       Subnets:
-        - subnet-09ff13fc14a20db6b
-        - subnet-096ddfd502c857f53
+        - !Ref PublicSubnet1Id
+        - !If [SingleSubnetDeployment, !Ref PublicSubnet1Id, !Ref PublicSubnet2Id]
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -118,7 +135,9 @@ Resources:
           SecurityGroups:
             - !Ref ECSSecurityGroup
           Subnets:
-            - subnet-0b066ef635aebfd81
+            - !Ref PrivateSubnet1Id
+            - !If [SingleSubnetDeployment, !Ref PrivateSubnet1Id, !Ref PrivateSubnet2Id]
+          AssignPublicIp: ENABLED
       LoadBalancers:
         - ContainerName: products-api
           ContainerPort: 8090
