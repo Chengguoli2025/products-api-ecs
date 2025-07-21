@@ -1,5 +1,5 @@
 # Build stage
-FROM eclipse-temurin:17 AS build
+FROM --platform=linux/amd64 eclipse-temurin:17 AS build
 WORKDIR /app
 
 # Copy gradle files first for better layer caching
@@ -21,7 +21,7 @@ COPY src src
 RUN ./gradlew build -x test --no-daemon
 
 # Runtime stage
-FROM eclipse-temurin:17-jre
+FROM --platform=linux/amd64 eclipse-temurin:17-jre
 WORKDIR /app
 
 # Copy the built jar from the build stage
