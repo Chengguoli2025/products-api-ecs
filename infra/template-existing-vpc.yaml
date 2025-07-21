@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Conditions:
-  SingleSubnetDeployment: !Equals [!Ref SingleSubnetDeployment, 'true']
+# No conditions needed anymore
 
 Parameters:
   Environment:
@@ -28,10 +27,7 @@ Parameters:
   PublicSubnet2Id:
     Type: String
     Default: 'subnet-096ddfd502c857f53'
-  SingleSubnetDeployment:
-    Type: String
-    Default: 'true'
-    AllowedValues: ['true', 'false']
+  # SingleSubnetDeployment parameter removed as we're always using single subnet
 
 
 
@@ -68,10 +64,8 @@ Resources:
       Name: !Sub 'products-api-${Environment}-alb'
       Scheme: internet-facing
       Type: application
-      Subnets: !If 
-        - SingleSubnetDeployment
-        - [!Ref PublicSubnet1Id]
-        - [!Ref PublicSubnet1Id, !Ref PublicSubnet2Id]
+      Subnets: 
+        - !Ref PublicSubnet1Id
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -135,10 +129,8 @@ Resources:
         AwsvpcConfiguration:
           SecurityGroups:
             - !Ref ECSSecurityGroup
-          Subnets: !If 
-            - SingleSubnetDeployment
-            - [!Ref PrivateSubnet1Id]
-            - [!Ref PrivateSubnet1Id, !Ref PrivateSubnet2Id]
+          Subnets:
+            - !Ref PrivateSubnet1Id
           AssignPublicIp: ENABLED
       LoadBalancers:
         - ContainerName: products-api
