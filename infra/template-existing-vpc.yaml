@@ -110,6 +110,9 @@ Resources:
           Image: !Sub '${AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/products-api:latest'
           PortMappings:
             - ContainerPort: 8090
+          Environment:
+            - Name: SPRING_PROFILE
+              Value: !Ref Environment
           LogConfiguration:
             LogDriver: awslogs
             Options:

@@ -30,5 +30,5 @@ COPY --from=build /app/build/libs/*.jar app.jar
 # Expose the application port
 EXPOSE 8090
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Run the application with environment-specific profile
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILE:dev}"]
