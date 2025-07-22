@@ -132,7 +132,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           SecurityGroups:
-            - !Ref ECSSecurityGroup
+            - sg-08295c11d4f145d1c
           Subnets:
             - !Ref PrivateSubnet1Id
           AssignPublicIp: ENABLED
