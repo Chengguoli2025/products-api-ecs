@@ -1,7 +1,7 @@
 # application-dev.yml
 spring:
   datasource:
-    url: jdbc:postgresql://postgres.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com:5432/postgres
+    url: jdbc:postgresql://database-1.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com:5432/postgres
     username: postgres
     password: 12345678
     driver-class-name: org.postgresql.Driver
