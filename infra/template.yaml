@@ -189,7 +189,7 @@ Resources:
       Protocol: HTTP
       VpcId: !Ref VPC
       TargetType: ip
-      HealthCheckPath: /products
+      HealthCheckPath: /health
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -221,6 +221,12 @@ Resources:
           Image: !Sub '${AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/products-api:latest'
           PortMappings:
             - ContainerPort: 8090
+          Environment:
+            - Name: SPRING_PROFILE
+              Value: !Ref Environment
+          Essential: true
+          StartTimeout: 120
+          StopTimeout: 30
           LogConfiguration:
             LogDriver: awslogs
             Options:
@@ -237,6 +243,14 @@ Resources:
       TaskDefinition: !Ref TaskDefinition
       DesiredCount: 1
       LaunchType: FARGATE
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+        DeploymentCircuitBreaker:
+          Enable: true
+          Rollback: true
+      DeploymentController:
+        Type: ECS
       NetworkConfiguration:
         AwsvpcConfiguration:
           SecurityGroups:
