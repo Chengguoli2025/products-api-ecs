@@ -1,26 +1,11 @@
-# application-staging.yml
+# application-dev.yml
 spring:
   datasource:
-    url: jdbc:postgresql://product-api-staging.cluster-xyz.ap-southeast-2.rds.amazonaws.com:5432/productdb
-    username: productapi
+    url: jdbc:postgresql://database-1.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com:5432/postgres
+    username: postgres
+    password: 12345678
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: false
-
-aws:
-  ssm:
-    db-password-parameter: /product-api/staging/db-password
-  cognito:
-    issuer-uri: https://cognito-idp.ap-southeast-2.amazonaws.com/ap-southeast-2_STAGING_POOL_ID
-
-external-services:
-  notification-service:
-    url: https://notification-service.staging.tonyffenochezra.com
-  inventory-service:
-    url: https://inventory-service.staging.tonyffenochezra.com
-
-logging:
-  level:
-    com.tonyffenochezra.productapi: INFO
-    org.springframework.security: WARN
+    show-sql: true
