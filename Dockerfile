@@ -2,13 +2,6 @@
 FROM --platform=linux/amd64 eclipse-temurin:17 AS build
 WORKDIR /app
 
-# Pre-download Gradle distribution to avoid downloading during CI
-RUN mkdir -p /root/.gradle/wrapper/dists/gradle-8.14.3-bin/
-RUN curl -L https://services.gradle.org/distributions/gradle-8.14.3-bin.zip -o /tmp/gradle-8.14.3-bin.zip
-RUN mkdir -p /root/.gradle/wrapper/dists/gradle-8.14.3-bin/abcdefghijklmnopqrstuvwxyz
-RUN unzip /tmp/gradle-8.14.3-bin.zip -d /root/.gradle/wrapper/dists/gradle-8.14.3-bin/abcdefghijklmnopqrstuvwxyz
-RUN rm /tmp/gradle-8.14.3-bin.zip
-
 # Copy gradle files first for better layer caching
 COPY gradlew .
 COPY gradle gradle
@@ -17,6 +10,9 @@ COPY settings.gradle .
 
 # Make gradlew executable
 RUN chmod +x ./gradlew
+
+# Set Gradle options to use local cache and avoid downloading
+ENV GRADLE_OPTS="-Dgradle.user.home=/app/.gradle"
 
 # Download dependencies
 RUN ./gradlew dependencies --no-daemon
