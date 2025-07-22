@@ -35,3 +35,4 @@ EXPOSE 8090
 
 # Run the application with environment-specific profile
 ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=${SPRING_PROFILE:dev}"]
+#ENTRYPOINT ["bash", "-c", "echo 'Testing DB connection...' && timeout 5 bash -c 'echo > /dev/tcp/database-1.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com/5432' && echo 'DB test passed, starting app...' || echo 'DB connection failed but continuing...' && java -jar app.jar --spring.profiles.active=${SPRING_PROFILE:-dev}"]

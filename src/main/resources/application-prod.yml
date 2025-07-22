@@ -1,17 +1,17 @@
-# application-prod.yml
+# application-dev.yml
 spring:
   datasource:
-    url: jdbc:postgresql://product-api-prod.cluster-xyz.ap-southeast-2.rds.amazonaws.com:5432/productdb
-    username: productapi
+    url: jdbc:postgresql://my-app-prod.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com:5432/postgres
+    username: postgres
+    password: 12345678
+    driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: validate
-    show-sql: false
+    show-sql: true
 
-  flyway:
-    enabled: false
 
 logging:
   level:
-    com.tonyffenochezra.productapi: WARN
-    org.springframework.security: ERROR
+    com.tonyffenochezra.productapi: DEBUG
+    org.springframework.security: DEBUG
