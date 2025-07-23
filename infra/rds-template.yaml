@@ -1,0 +1,256 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'RDS instance with auto-generated password stored in Secrets Manager'
+
+Parameters:
+  Environment:
+    Type: String
+    AllowedValues: [dev, staging, prod]
+    Default: dev
+    Description: Environment name
+  VpcId:
+    Type: String
+    Default: 'vpc-03b72cde5edbd5472'
+    Description: VPC ID for the RDS instance
+  PrivateSubnet1Id:
+    Type: String
+    Default: 'subnet-0ffb7ecb30cd8431d'
+    Description: First private subnet for RDS
+  PrivateSubnet2Id:
+    Type: String
+    Default: 'subnet-0b066ef635aebfd81'
+    Description: Second private subnet for RDS
+  PrivateSubnet3Id:
+    Type: String
+    Default: 'subnet-09ff13fc14a20db6b'
+    Description: Third private subnet for RDS
+  DBInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    Description: The database instance type
+  DBName:
+    Type: String
+    Default: productsdb
+    Description: The database name
+  DBUsername:
+    Type: String
+    Default: dbadmin
+    Description: The database admin username
+  DBEngineVersion:
+    Type: String
+    Default: '17.4'
+    Description: The PostgreSQL engine version
+  PasswordRotationDays:
+    Type: Number
+    Default: 1
+    Description: Number of days before password rotation
+
+Resources:
+  DBSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Name: !Sub '${Environment}/products-api/db-credentials'
+      Description: !Sub 'RDS database credentials for ${Environment} environment'
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${DBUsername}", "dbInstanceIdentifier": "${AWS::StackName}-db"}'  
+        GenerateStringKey: "password"
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\\'
+
+  SecretRDSAttachment:
+    Type: AWS::SecretsManager::SecretTargetAttachment
+    Properties:
+      SecretId: !Ref DBSecret
+      TargetId: !Ref RDSInstance
+      TargetType: AWS::RDS::DBInstance
+
+  SecretRotationSchedule:
+    Type: AWS::SecretsManager::RotationSchedule
+    DependsOn: SecretRDSAttachment
+    Properties:
+      SecretId: !Ref DBSecret
+      RotationLambdaARN: !GetAtt SecretRotationLambda.Arn
+      RotationRules:
+        AutomaticallyAfterDays: !Ref PasswordRotationDays
+
+  SecretRotationLambda:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${Environment}-products-api-secret-rotation'
+      Description: 'Rotates RDS secrets for products-api'
+      Handler: index.lambda_handler
+      Runtime: python3.9
+      Timeout: 30
+      Role: !GetAtt SecretRotationLambdaRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import json
+          import logging
+          import os
+          from botocore.exceptions import ClientError
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          def lambda_handler(event, context):
+              """Secrets Manager RDS PostgreSQL Handler
+
+              This handler uses the master-user rotation scheme to rotate an RDS PostgreSQL password.
+              """
+              logger.info(f"Event: {event}")
+
+              arn = event['SecretId']
+              token = event['ClientRequestToken']
+              step = event['Step']
+
+              # Setup the client
+              service_client = boto3.client('secretsmanager')
+
+              # Make sure the version is staged correctly
+              metadata = service_client.describe_secret(SecretId=arn)
+              if not metadata['RotationEnabled']:
+                  logger.error(f"Secret {arn} is not enabled for rotation")
+                  raise ValueError(f"Secret {arn} is not enabled for rotation")
+
+              # Get the secret
+              response = service_client.get_secret_value(SecretId=arn, VersionStage="AWSCURRENT")
+              current_dict = json.loads(response['SecretString'])
+
+              # Create a new password
+              passwd = service_client.get_random_password(
+                  ExcludeCharacters='"@/\\',
+                  PasswordLength=16
+              )
+              new_passwd = passwd['RandomPassword']
+
+              # Update the RDS password
+              rds = boto3.client('rds')
+              try:
+                  rds.modify_db_instance(
+                      DBInstanceIdentifier=current_dict['dbInstanceIdentifier'],
+                      MasterUserPassword=new_passwd,
+                      ApplyImmediately=True
+                  )
+              except ClientError as e:
+                  logger.error(f"Error updating RDS password: {e}")
+                  raise e
+
+              # Update the secret
+              current_dict['password'] = new_passwd
+              service_client.put_secret_value(
+                  SecretId=arn,
+                  ClientRequestToken=token,
+                  SecretString=json.dumps(current_dict),
+                  VersionStages=['AWSCURRENT']
+              )
+
+              logger.info(f"Successfully rotated secret for {arn}")
+              return {"statusCode": 200}
+      Environment:
+        Variables:
+          SECRETS_MANAGER_ENDPOINT: !Sub 'https://secretsmanager.${AWS::Region}.amazonaws.com'
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref RDSSecurityGroup
+        SubnetIds:
+          - !Ref PrivateSubnet1Id
+          - !Ref PrivateSubnet2Id
+          - !Ref PrivateSubnet3Id
+
+  SecretRotationLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+      Policies:
+        - PolicyName: SecretsManagerAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetSecretValue
+                  - secretsmanager:DescribeSecret
+                  - secretsmanager:PutSecretValue
+                  - secretsmanager:UpdateSecretVersionStage
+                Resource: !Ref DBSecret
+              - Effect: Allow
+                Action:
+                  - secretsmanager:GetRandomPassword
+                Resource: '*'
+        - PolicyName: RDSAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - rds:ModifyDBInstance
+                Resource: !Sub 'arn:aws:rds:${AWS::Region}:${AWS::AccountId}:db:${AWS::StackName}-db'
+
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for RDS instance
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5432
+          ToPort: 5432
+          SourceSecurityGroupId: sg-08c9481353384fe62  # Using the specified security group rds-ec2-2
+
+  RDSSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Subnet group for RDS instance
+      SubnetIds:
+        - !Ref PrivateSubnet1Id
+        - !Ref PrivateSubnet2Id
+        - !Ref PrivateSubnet3Id
+
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub '${AWS::StackName}-db'
+      DBName: !Ref DBName
+      Engine: postgres
+      EngineVersion: !Ref DBEngineVersion
+      DBInstanceClass: !Ref DBInstanceClass
+      AllocatedStorage: 20
+      StorageType: gp2
+      MasterUsername: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:username}}'
+      MasterUserPassword: !Sub '{{resolve:secretsmanager:${DBSecret}:SecretString:password}}'
+      DBSubnetGroupName: !Ref RDSSubnetGroup
+      VPCSecurityGroups:
+        - sg-08c9481353384fe62  # Using the specified security group rds-ec2-2
+      BackupRetentionPeriod: 7
+      MultiAZ: false
+      PubliclyAccessible: false
+      StorageEncrypted: true
+      DeletionProtection: true
+      Tags:
+        - Key: Environment
+          Value: !Ref Environment
+
+Outputs:
+  DatabaseEndpoint:
+    Description: The connection endpoint for the RDS instance
+    Value: !GetAtt RDSInstance.Endpoint.Address
+  DatabasePort:
+    Description: The port for the RDS instance
+    Value: !GetAtt RDSInstance.Endpoint.Port
+  DatabaseName:
+    Description: The database name
+    Value: !Ref DBName
+  DatabaseSecretArn:
+    Description: ARN of the secret containing database credentials
+    Value: !Ref DBSecret
+  JDBCConnectionString:
+    Description: JDBC connection string for the database
+    Value: !Sub 'jdbc:postgresql://${RDSInstance.Endpoint.Address}:${RDSInstance.Endpoint.Port}/${DBName}'
