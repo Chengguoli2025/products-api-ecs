@@ -38,6 +38,7 @@ dependencies {
     implementation 'software.amazon.awssdk:ssm:2.21.29'
     implementation 'software.amazon.awssdk:auth:2.21.29'
     implementation 'software.amazon.awssdk:regions:2.21.29'
+    implementation 'software.amazon.awssdk:secretsmanager:2.21.29'
 
     // HTTP Client
     implementation 'org.springframework.boot:spring-boot-starter-webflux'
