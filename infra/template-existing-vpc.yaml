@@ -31,6 +31,17 @@ Parameters:
 
 
 Resources:
+  # Create additional public subnet for ALB (needs 2 AZs)
+  PublicSubnet2New:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: 10.0.0.96/27
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'products-api-${Environment}-public-2'
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -65,6 +76,7 @@ Resources:
       Type: application
       Subnets: 
         - !Ref PublicSubnet1Id
+        - !Ref PublicSubnet2New
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
