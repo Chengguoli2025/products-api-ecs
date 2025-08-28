@@ -1,10 +1,15 @@
 # application-dev.yml
 spring:
   datasource:
-    url: jdbc:postgresql://my-app-prod.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com:5432/postgres
-    username: postgres
-    password: 12345678
+    url: jdbc:postgresql://products-api-rds-prod-db.cx0qnfjtc2ft.ap-southeast-2.rds.amazonaws.com:5432/postgres
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  cloud:
+    aws:
+      secretsmanager:
+        secret-name: prod/products-api/db-credentials
+        region: ap-southeast-2
   jpa:
     hibernate:
       ddl-auto: validate
