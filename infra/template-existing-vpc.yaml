@@ -17,10 +17,10 @@ Parameters:
     Default: 'vpc-03b72cde5edbd5472'
   PublicSubnet1Id:
     Type: String
-    Default: 'subnet-09ff13fc14a20db6b'
+    Default: 'subnet-0dc6d27d97f2560b1'
   PublicSubnet2Id:
     Type: String
-    Default: 'subnet-0ffb7ecb30cd8431d'
+    Default: 'subnet-0dc6d27d97f2560b1'
   PrivateSubnet1Id:
     Type: String
     Default: 'subnet-0b066ef635aebfd81'
