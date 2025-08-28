@@ -21,40 +21,52 @@ pipeline {
     }
     
     stages {
+        stage('Configure AWS') {
+            steps {
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                    sh 'aws sts get-caller-identity'
+                }
+            }
+        }
+        
         stage('Deploy') {
             steps {
-                script {
-                    def clusterName = "products-api-${params.ENVIRONMENT}"
-                    def serviceName = "products-api-service-${params.ENVIRONMENT}"
-                    def imageUri = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${params.IMAGE_TAG}"
-                    
-                    sh """
-                        aws ecs update-service \
-                            --cluster ${clusterName} \
-                            --service ${serviceName} \
-                            --force-new-deployment \
-                            --region ${AWS_REGION}
-                    """
-                    
-                    echo "Deployed ${imageUri} to ${params.ENVIRONMENT} environment"
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                    script {
+                        def clusterName = "products-api-${params.ENVIRONMENT}"
+                        def serviceName = "products-api-service-${params.ENVIRONMENT}"
+                        def imageUri = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${params.IMAGE_TAG}"
+                        
+                        sh """
+                            aws ecs update-service \
+                                --cluster ${clusterName} \
+                                --service ${serviceName} \
+                                --force-new-deployment \
+                                --region ${AWS_REGION}
+                        """
+                        
+                        echo "Deployed ${imageUri} to ${params.ENVIRONMENT} environment"
+                    }
                 }
             }
         }
         
         stage('Wait for Deployment') {
             steps {
-                script {
-                    def clusterName = "products-api-${params.ENVIRONMENT}"
-                    def serviceName = "products-api-service-${params.ENVIRONMENT}"
-                    
-                    sh """
-                        aws ecs wait services-stable \
-                            --cluster ${clusterName} \
-                            --services ${serviceName} \
-                            --region ${AWS_REGION}
-                    """
-                    
-                    echo "Deployment to ${params.ENVIRONMENT} completed successfully"
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
+                    script {
+                        def clusterName = "products-api-${params.ENVIRONMENT}"
+                        def serviceName = "products-api-service-${params.ENVIRONMENT}"
+                        
+                        sh """
+                            aws ecs wait services-stable \
+                                --cluster ${clusterName} \
+                                --services ${serviceName} \
+                                --region ${AWS_REGION}
+                        """
+                        
+                        echo "Deployment to ${params.ENVIRONMENT} completed successfully"
+                    }
                 }
             }
         }
