@@ -65,7 +65,6 @@ Resources:
       Type: application
       Subnets: 
         - !Ref PublicSubnet1Id
-        - !Ref PublicSubnet2Id
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
