@@ -1,0 +1,71 @@
+pipeline {
+    agent any
+    
+    parameters {
+        choice(
+            name: 'ENVIRONMENT',
+            choices: ['dev', 'staging', 'prod'],
+            description: 'Target environment'
+        )
+        string(
+            name: 'IMAGE_TAG',
+            defaultValue: 'latest',
+            description: 'ECR image tag to deploy'
+        )
+    }
+    
+    environment {
+        ECR_REGISTRY = '427260910901.dkr.ecr.ap-southeast-2.amazonaws.com'
+        ECR_REPOSITORY = 'products-api'
+        AWS_REGION = 'ap-southeast-2'
+    }
+    
+    stages {
+        stage('Deploy') {
+            steps {
+                script {
+                    def clusterName = "products-api-${params.ENVIRONMENT}"
+                    def serviceName = "products-api-service-${params.ENVIRONMENT}"
+                    def imageUri = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${params.IMAGE_TAG}"
+                    
+                    sh """
+                        aws ecs update-service \
+                            --cluster ${clusterName} \
+                            --service ${serviceName} \
+                            --force-new-deployment \
+                            --region ${AWS_REGION}
+                    """
+                    
+                    echo "Deployed ${imageUri} to ${params.ENVIRONMENT} environment"
+                }
+            }
+        }
+        
+        stage('Wait for Deployment') {
+            steps {
+                script {
+                    def clusterName = "products-api-${params.ENVIRONMENT}"
+                    def serviceName = "products-api-service-${params.ENVIRONMENT}"
+                    
+                    sh """
+                        aws ecs wait services-stable \
+                            --cluster ${clusterName} \
+                            --services ${serviceName} \
+                            --region ${AWS_REGION}
+                    """
+                    
+                    echo "Deployment to ${params.ENVIRONMENT} completed successfully"
+                }
+            }
+        }
+    }
+    
+    post {
+        success {
+            echo "✅ Successfully deployed ${params.IMAGE_TAG} to ${params.ENVIRONMENT}"
+        }
+        failure {
+            echo "❌ Deployment failed for ${params.IMAGE_TAG} to ${params.ENVIRONMENT}"
+        }
+    }
+}
