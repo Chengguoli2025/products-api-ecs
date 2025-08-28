@@ -47,9 +47,9 @@ pipeline {
                                 DomainName=tonyffenochezra.com \
                                 VpcId=vpc-03b72cde5edbd5472 \
                                 PublicSubnet1Id=subnet-09ff13fc14a20db6b \
-                                PublicSubnet2Id=subnet-09ff13fc14a20db6b \
+                                PublicSubnet2Id=subnet-0ffb7ecb30cd8431d \
                                 PrivateSubnet1Id=subnet-0b066ef635aebfd81 \
-                                PrivateSubnet2Id=subnet-0b066ef635aebfd81 \
+                                PrivateSubnet2Id=subnet-096ddfd502c857f53 \
                                 SingleSubnetDeployment=false \
                             --capabilities CAPABILITY_IAM \
                             --region ${AWS_REGION} \
