@@ -53,14 +53,24 @@ pipeline {
                                 SingleSubnetDeployment=false \
                             --capabilities CAPABILITY_IAM \
                             --region ${AWS_REGION} \
-                            --no-fail-on-empty-changeset || true
+                            --no-fail-on-empty-changeset
                         
-                        # Print stack events to debug failures
-                        aws cloudformation describe-stack-events \
+                        # Check stack status
+                        STACK_STATUS=\$(aws cloudformation describe-stacks \
                             --stack-name ${STACK_NAME} \
                             --region ${AWS_REGION} \
-                            --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
-                            --output table
+                            --query 'Stacks[0].StackStatus' \
+                            --output text)
+                        
+                        if [[ "\$STACK_STATUS" == *"ROLLBACK"* ]] || [[ "\$STACK_STATUS" == *"FAILED"* ]]; then
+                            echo "Stack deployment failed with status: \$STACK_STATUS"
+                            aws cloudformation describe-stack-events \
+                                --stack-name ${STACK_NAME} \
+                                --region ${AWS_REGION} \
+                                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+                                --output table
+                            exit 1
+                        fi
                     """
                 }
             }
@@ -85,6 +95,22 @@ pipeline {
     }
     
     post {
+        always {
+            script {
+                if (params.ACTION == 'deploy') {
+                    withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
+                        sh """
+                            echo "Final stack status:"
+                            aws cloudformation describe-stacks \
+                                --stack-name ${STACK_NAME} \
+                                --region ${AWS_REGION} \
+                                --query 'Stacks[0].StackStatus' \
+                                --output text || echo "Stack not found"
+                        """
+                    }
+                }
+            }
+        }
         success {
             echo "Infrastructure ${params.ACTION} completed successfully for ${params.ENVIRONMENT}"
         }
