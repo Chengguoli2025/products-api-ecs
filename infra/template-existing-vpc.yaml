@@ -27,6 +27,9 @@ Parameters:
   PrivateSubnet2Id:
     Type: String
     Default: 'subnet-096ddfd502c857f53'
+  PublicRouteTableId:
+    Type: String
+    Description: 'ID of the existing public route table'
 
 
 
@@ -42,6 +45,13 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub 'products-api-${Environment}-public-2'
+
+  # Associate new public subnet with public route table
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet2New
+      RouteTableId: !Ref PublicRouteTableId
 
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
