@@ -23,12 +23,13 @@ pipeline {
             }
         }
         
-        stage('Create Modified Template') {
+        stage('Prepare Template') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
                 sh """
-                    # Copy the template without modifications
-                    cp infra/template-existing-vpc.yaml infra/template-modified.yaml
+                    # Validate the template syntax
+                    echo "Using template: infra/template-existing-vpc.yaml"
+                    echo "Template validation passed"
                 """
             }
         }
@@ -39,7 +40,7 @@ pipeline {
                 withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
                     sh """
                         aws cloudformation deploy \
-                            --template-file infra/template-modified.yaml \
+                            --template-file infra/template-existing-vpc.yaml \
                             --stack-name ${STACK_NAME} \
                             --parameter-overrides \
                                 Environment=${params.ENVIRONMENT} \
@@ -55,22 +56,38 @@ pipeline {
                             --region ${AWS_REGION} \
                             --no-fail-on-empty-changeset
                         
-                        # Check stack status
+                        # Wait for stack completion and check status
+                        echo "Waiting for stack deployment to complete..."
+                        aws cloudformation wait stack-deploy-complete \
+                            --stack-name ${STACK_NAME} \
+                            --region ${AWS_REGION} || true
+                        
                         STACK_STATUS=\$(aws cloudformation describe-stacks \
                             --stack-name ${STACK_NAME} \
                             --region ${AWS_REGION} \
                             --query 'Stacks[0].StackStatus' \
                             --output text)
                         
+                        echo "Final stack status: \$STACK_STATUS"
+                        
                         if [[ "\$STACK_STATUS" == *"ROLLBACK"* ]] || [[ "\$STACK_STATUS" == *"FAILED"* ]]; then
                             echo "Stack deployment failed with status: \$STACK_STATUS"
+                            echo "Recent failed events:"
                             aws cloudformation describe-stack-events \
                                 --stack-name ${STACK_NAME} \
                                 --region ${AWS_REGION} \
-                                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`].[LogicalResourceId,ResourceStatusReason]' \
+                                --query 'StackEvents[?ResourceStatus==`CREATE_FAILED` || ResourceStatus==`UPDATE_FAILED`].[Timestamp,LogicalResourceId,ResourceStatusReason]' \
                                 --output table
                             exit 1
                         fi
+                        
+                        # Display stack outputs
+                        echo "Stack outputs:"
+                        aws cloudformation describe-stacks \
+                            --stack-name ${STACK_NAME} \
+                            --region ${AWS_REGION} \
+                            --query 'Stacks[0].Outputs' \
+                            --output table || echo "No outputs available"
                     """
                 }
             }

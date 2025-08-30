@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-# No conditions needed anymore
+Conditions:
+  HasPublicRouteTable: !Not [!Equals [!Ref PublicRouteTableId, '']]
 
 Parameters:
   Environment:
@@ -30,6 +31,7 @@ Parameters:
   PublicRouteTableId:
     Type: String
     Description: 'ID of the existing public route table'
+    Default: ''
 
 
 
@@ -49,6 +51,7 @@ Resources:
   # Associate new public subnet with public route table
   PublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: HasPublicRouteTable
     Properties:
       SubnetId: !Ref PublicSubnet2New
       RouteTableId: !Ref PublicRouteTableId
@@ -168,6 +171,7 @@ Resources:
             - sg-08295c11d4f145d1c
           Subnets:
             - !Ref PrivateSubnet1Id
+            - !Ref PrivateSubnet2Id
           AssignPublicIp: DISABLED
       LoadBalancers:
         - ContainerName: products-api
