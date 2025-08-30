@@ -1,7 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
-Conditions:
-  HasPublicRouteTable: !Not [!Equals [!Ref PublicRouteTableId, '']]
+# No conditions needed - we create our own public route table
 
 Parameters:
   Environment:
@@ -28,14 +27,44 @@ Parameters:
   PrivateSubnet2Id:
     Type: String
     Default: 'subnet-096ddfd502c857f53'
-  PublicRouteTableId:
-    Type: String
-    Description: 'ID of the existing public route table'
-    Default: ''
+# PublicRouteTableId parameter removed - we create our own route table
 
 
 
 Resources:
+  # Create Internet Gateway if it doesn't exist
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub 'products-api-${Environment}-igw'
+
+  # Attach Internet Gateway to VPC
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VpcId
+      InternetGatewayId: !Ref InternetGateway
+
+  # Create public route table
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: !Sub 'products-api-${Environment}-public-rt'
+
+  # Create route to Internet Gateway
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
   # Create additional public subnet for ALB (needs 2 AZs)
   PublicSubnet2New:
     Type: AWS::EC2::Subnet
@@ -48,13 +77,19 @@ Resources:
         - Key: Name
           Value: !Sub 'products-api-${Environment}-public-2'
 
+  # Associate existing public subnet with public route table
+  PublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet1Id
+      RouteTableId: !Ref PublicRouteTable
+
   # Associate new public subnet with public route table
   PublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
-    Condition: HasPublicRouteTable
     Properties:
       SubnetId: !Ref PublicSubnet2New
-      RouteTableId: !Ref PublicRouteTableId
+      RouteTableId: !Ref PublicRouteTable
 
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
