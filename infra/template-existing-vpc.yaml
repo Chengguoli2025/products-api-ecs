@@ -65,7 +65,6 @@ Resources:
   # Associate new public subnet with existing public route table
   PublicSubnet2RouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
-    Condition: HasPublicRouteTable
     Properties:
       SubnetId: !Ref PublicSubnet2New
       RouteTableId: !Ref PublicRouteTableId
