@@ -28,20 +28,20 @@ Parameters:
     Default: 'vpc-03b72cde5edbd5472'
   PublicSubnet1Id:
     Type: String
-    Default: 'subnet-0dc6d27d97f2560b1'
+    Default: 'subnet-096ddfd502c857f53'
   PublicSubnet2Id:
     Type: String
-    Default: 'subnet-0dc6d27d97f2560b1'
+    Default: 'subnet-09ff13fc14a20db6b'
   PrivateSubnet1Id:
     Type: String
-    Default: 'subnet-0b066ef635aebfd81'
+    Default: 'subnet-0d3b803a2e0c559b8'
   PrivateSubnet2Id:
     Type: String
-    Default: 'subnet-096ddfd502c857f53'
+    Default: 'subnet-0b066ef635aebfd81'
   PublicRouteTableId:
     Type: String
     Description: 'ID of the existing public route table (or None if first-time creation)'
-    Default: 'None'
+    Default: 'rtb-0759ed6c6536e37e2'
   CustomCIDR:
     Type: String
     Description: 'Optional custom CIDR block for the new public subnet (leave empty to use default)'
@@ -50,29 +50,6 @@ Parameters:
 
 
 Resources:
-  # Create additional public subnet for ALB (needs 2 AZs)
-  PublicSubnet2New:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VpcId
-      CidrBlock: !If 
-        - UseCustomCIDR
-        - !Ref CustomCIDR
-        - !FindInMap [EnvironmentCIDR, !Ref Environment, PublicSubnet2]
-      AvailabilityZone: !Select [1, !GetAZs '']
-      MapPublicIpOnLaunch: true
-      Tags:
-        - Key: Name
-          Value: !Sub 'products-api-${Environment}-public-2'
-
-  # Associate new public subnet with existing public route table (only if route table exists)
-  PublicSubnet2RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Condition: HasPublicRouteTable
-    Properties:
-      SubnetId: !Ref PublicSubnet2New
-      RouteTableId: !Ref PublicRouteTableId
-
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -107,7 +84,7 @@ Resources:
       Type: application
       Subnets: 
         - !Ref PublicSubnet1Id
-        - !Ref PublicSubnet2New
+        - !Ref PublicSubnet2Id
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -185,7 +162,7 @@ Resources:
       NetworkConfiguration:
         AwsvpcConfiguration:
           SecurityGroups:
-            - sg-08295c11d4f145d1c
+            - !Ref ECSSecurityGroup
           Subnets:
             - !Ref PrivateSubnet1Id
             - !Ref PrivateSubnet2Id
