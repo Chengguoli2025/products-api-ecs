@@ -50,6 +50,26 @@ Parameters:
 
 
 Resources:
+  # Create additional public subnet for ALB (needs 2 AZs)
+  PublicSubnet2New:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      CidrBlock: !FindInMap [EnvironmentCIDR, !Ref Environment, PublicSubnet2]
+      AvailabilityZone: !Select [1, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'products-api-${Environment}-public-2'
+
+  # Associate new public subnet with existing public route table
+  PublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Condition: HasPublicRouteTable
+    Properties:
+      SubnetId: !Ref PublicSubnet2New
+      RouteTableId: !Ref PublicRouteTableId
+
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -84,7 +104,7 @@ Resources:
       Type: application
       Subnets: 
         - !Ref PublicSubnet1Id
-        - !Ref PublicSubnet2Id
+        - !Ref PublicSubnet2New
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
