@@ -32,7 +32,13 @@ pipeline {
                         VPC_EXISTS=\$(aws ec2 describe-vpcs --vpc-ids vpc-03b72cde5edbd5472 --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "None")
                         
                         if [ "\$VPC_EXISTS" != "None" ]; then
-                            echo "VPC exists, finding public route table..."
+                            echo "VPC exists, checking existing subnets..."
+                            
+                            # List all existing subnet CIDR blocks
+                            echo "Existing subnet CIDR blocks in VPC:"
+                            aws ec2 describe-subnets --filters "Name=vpc-id,Values=vpc-03b72cde5edbd5472" --query 'Subnets[*].[CidrBlock,SubnetId,Tags[?Key==`Name`].Value|[0]]' --output table
+                            
+                            # Find public route table
                             PUBLIC_RT_ID=\$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=vpc-03b72cde5edbd5472" "Name=route.destination-cidr-block,Values=0.0.0.0/0" --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "None")
                             echo "Found public route table ID: \$PUBLIC_RT_ID"
                             

@@ -2,15 +2,16 @@ AWSTemplateFormatVersion: '2010-09-09'
 
 Conditions:
   HasPublicRouteTable: !Not [!Equals [!Ref PublicRouteTableId, 'None']]
+  UseCustomCIDR: !Not [!Equals [!Ref CustomCIDR, '']]
 
 Mappings:
   EnvironmentCIDR:
     dev:
-      PublicSubnet2: '10.0.0.64/27'   # 10.0.0.64 - 10.0.0.95
+      PublicSubnet2: '10.0.200.0/27'   # 10.0.200.0 - 10.0.200.31
     staging:
-      PublicSubnet2: '10.0.0.96/27'   # 10.0.0.96 - 10.0.0.127
+      PublicSubnet2: '10.0.200.32/27'  # 10.0.200.32 - 10.0.200.63
     prod:
-      PublicSubnet2: '10.0.0.128/27'  # 10.0.0.128 - 10.0.0.159
+      PublicSubnet2: '10.0.200.64/27'  # 10.0.200.64 - 10.0.200.95
 
 Parameters:
   Environment:
@@ -41,6 +42,10 @@ Parameters:
     Type: String
     Description: 'ID of the existing public route table (or None if first-time creation)'
     Default: 'None'
+  CustomCIDR:
+    Type: String
+    Description: 'Optional custom CIDR block for the new public subnet (leave empty to use default)'
+    Default: ''
 
 
 
@@ -50,7 +55,10 @@ Resources:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VpcId
-      CidrBlock: !FindInMap [EnvironmentCIDR, !Ref Environment, PublicSubnet2]
+      CidrBlock: !If 
+        - UseCustomCIDR
+        - !Ref CustomCIDR
+        - !FindInMap [EnvironmentCIDR, !Ref Environment, PublicSubnet2]
       AvailabilityZone: !Select [1, !GetAZs '']
       MapPublicIpOnLaunch: true
       Tags:
