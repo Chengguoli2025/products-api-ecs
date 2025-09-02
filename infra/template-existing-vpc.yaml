@@ -25,19 +25,7 @@ Parameters:
     Default: 'tonyffenochezra.com'
   VpcId:
     Type: String
-    Default: 'vpc-03b72cde5edbd5472'
-  PublicSubnet1Id:
-    Type: String
-    Default: 'subnet-096ddfd502c857f53'
-  PublicSubnet2Id:
-    Type: String
-    Default: 'subnet-09ff13fc14a20db6b'
-  PrivateSubnet1Id:
-    Type: String
-    Default: 'subnet-0d3b803a2e0c559b8'
-  PrivateSubnet2Id:
-    Type: String
-    Default: 'subnet-0b066ef635aebfd81'
+    Default: 'vpc-0da035dea3ef41ee5'
   PublicRouteTableId:
     Type: String
     Description: 'ID of the existing public route table (or None if first-time creation)'
@@ -50,24 +38,38 @@ Parameters:
 
 
 Resources:
-  # Create additional public subnet for ALB (needs 2 AZs)
-  PublicSubnet2New:
+  # Get existing subnets by name
+  PublicSubnet1:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref VpcId
-      CidrBlock: !FindInMap [EnvironmentCIDR, !Ref Environment, PublicSubnet2]
-      AvailabilityZone: !Select [1, !GetAZs '']
-      MapPublicIpOnLaunch: true
       Tags:
         - Key: Name
-          Value: !Sub 'products-api-${Environment}-public-2'
+          Value: 'myapp-dev-public-a'
 
-  # Associate new public subnet with existing public route table
-  PublicSubnet2RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
+  PublicSubnet2:
+    Type: AWS::EC2::Subnet
     Properties:
-      SubnetId: !Ref PublicSubnet2New
-      RouteTableId: !Ref PublicRouteTableId
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: 'myapp-dev-public-b'
+
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: 'myapp-dev-private-a'
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VpcId
+      Tags:
+        - Key: Name
+          Value: 'myapp-dev-private-b'
 
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -102,8 +104,8 @@ Resources:
       Scheme: internet-facing
       Type: application
       Subnets: 
-        - !Ref PublicSubnet1Id
-        - !Ref PublicSubnet2New
+        - !Ref PublicSubnet1
+        - !Ref PublicSubnet2
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -183,8 +185,8 @@ Resources:
           SecurityGroups:
             - !Ref ECSSecurityGroup
           Subnets:
-            - !Ref PrivateSubnet1Id
-            - !Ref PrivateSubnet2Id
+            - !Ref PrivateSubnet1
+            - !Ref PrivateSubnet2
           AssignPublicIp: DISABLED
       LoadBalancers:
         - ContainerName: products-api

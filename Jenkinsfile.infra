@@ -23,48 +23,6 @@ pipeline {
             }
         }
         
-        stage('Prepare Template') {
-            when { expression { params.ACTION == 'deploy' } }
-            steps {
-                withCredentials([aws(credentialsId: 'aws-credentials', region: 'ap-southeast-2')]) {
-                    sh """
-                        # Check if VPC exists and find public route table
-                        VPC_EXISTS=\$(aws ec2 describe-vpcs --vpc-ids vpc-03b72cde5edbd5472 --query 'Vpcs[0].VpcId' --output text 2>/dev/null || echo "None")
-                        
-                        if [ "\$VPC_EXISTS" != "None" ]; then
-                            echo "VPC exists, checking existing subnets..."
-                            
-                            # List all existing subnet CIDR blocks
-                            echo "Existing subnet CIDR blocks in VPC:"
-                            aws ec2 describe-subnets --filters "Name=vpc-id,Values=vpc-03b72cde5edbd5472" --query 'Subnets[*].[CidrBlock,SubnetId,Tags[?Key==`Name`].Value|[0]]' --output table
-                            
-                            # Find public route table
-                            PUBLIC_RT_ID=\$(aws ec2 describe-route-tables --filters "Name=vpc-id,Values=vpc-03b72cde5edbd5472" "Name=route.destination-cidr-block,Values=0.0.0.0/0" --query 'RouteTables[0].RouteTableId' --output text 2>/dev/null || echo "None")
-                            echo "Found public route table ID: \$PUBLIC_RT_ID"
-                            
-                            if [ "\$PUBLIC_RT_ID" = "None" ]; then
-                                echo "WARNING: No public route table found in existing VPC!"
-                                echo "The new public subnet will be created but not associated with a route table."
-                                echo "You may need to manually associate it with a public route table after deployment."
-                            fi
-                        else
-                            echo "VPC does not exist - this appears to be first-time infrastructure creation"
-                            echo "WARNING: Using hardcoded VPC/subnet IDs for existing infrastructure."
-                            echo "Make sure the VPC and subnets specified in the template exist."
-                            PUBLIC_RT_ID="None"
-                        fi
-                        
-                        # Store the route table ID for use in deployment
-                        echo "\$PUBLIC_RT_ID" > /tmp/public_rt_id.txt
-                        
-                        # Validate the template syntax
-                        echo "Using template: infra/template-existing-vpc.yaml"
-                        echo "Template validation passed"
-                    """
-                }
-            }
-        }
-        
         stage('Deploy Infrastructure') {
             when { expression { params.ACTION == 'deploy' } }
             steps {
@@ -77,13 +35,7 @@ pipeline {
                                 Environment=${params.ENVIRONMENT} \
                                 AccountId=${AWS_ACCOUNT_ID} \
                                 DomainName=tonyffenochezra.com \
-                                VpcId=vpc-03b72cde5edbd5472 \
-                                PublicSubnet1Id=subnet-0dc6d27d97f2560b1 \
-                                PublicSubnet2Id=subnet-0dc6d27d97f2560b1 \
-                                PrivateSubnet1Id=subnet-0b066ef635aebfd81 \
-                                PrivateSubnet2Id=subnet-096ddfd502c857f53 \
-                                PublicRouteTableId=\$(cat /tmp/public_rt_id.txt) \
-                                SingleSubnetDeployment=false \
+                                VpcId=vpc-0da035dea3ef41ee5 \
                             --capabilities CAPABILITY_IAM \
                             --region ${AWS_REGION} \
                             --no-fail-on-empty-changeset
