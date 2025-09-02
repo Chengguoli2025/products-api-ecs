@@ -15,42 +15,26 @@ Parameters:
   VpcId:
     Type: String
     Default: 'vpc-0da035dea3ef41ee5'
+  PublicSubnet1Id:
+    Type: String
+    Default: 'subnet-0cd729467874e376a'
+    Description: ID of existing public subnet 1
+  PublicSubnet2Id:
+    Type: String
+    Default: 'subnet-02100f122117a2980'
+    Description: ID of existing public subnet 2
+  PrivateSubnet1Id:
+    Type: String
+    Default: 'subnet-05071846f3a9522bb'
+    Description: ID of existing private subnet 1
+  PrivateSubnet2Id:
+    Type: String
+    Default: 'subnet-0028380126e0f7306'
+    Description: ID of existing private subnet 2
 
 
 
 Resources:
-  # Get existing subnets by name
-  PublicSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: 'myapp-dev-public-a'
-
-  PublicSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: 'myapp-dev-public-b'
-
-  PrivateSubnet1:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: 'myapp-dev-private-a'
-
-  PrivateSubnet2:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VpcId
-      Tags:
-        - Key: Name
-          Value: 'myapp-dev-private-b'
 
   ALBSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -85,8 +69,8 @@ Resources:
       Scheme: internet-facing
       Type: application
       Subnets: 
-        - !Ref PublicSubnet1
-        - !Ref PublicSubnet2
+        - !Ref PublicSubnet1Id
+        - !Ref PublicSubnet2Id
       SecurityGroups:
         - !Ref ALBSecurityGroup
 
@@ -166,8 +150,8 @@ Resources:
           SecurityGroups:
             - !Ref ECSSecurityGroup
           Subnets:
-            - !Ref PrivateSubnet1
-            - !Ref PrivateSubnet2
+            - !Ref PrivateSubnet1Id
+            - !Ref PrivateSubnet2Id
           AssignPublicIp: DISABLED
       LoadBalancers:
         - ContainerName: products-api
