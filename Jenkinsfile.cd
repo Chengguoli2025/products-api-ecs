@@ -34,7 +34,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     script {
                         def clusterName = "products-api-${params.ENVIRONMENT}"
-                        def serviceName = "products-api-service-${params.ENVIRONMENT}"
+                        def serviceName = "products-api-ecs-${params.ENVIRONMENT}"
                         def imageUri = "${ECR_REGISTRY}/${ECR_REPOSITORY}:${params.IMAGE_TAG}"
                         
                         sh """
@@ -56,7 +56,7 @@ pipeline {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     script {
                         def clusterName = "products-api-${params.ENVIRONMENT}"
-                        def serviceName = "products-api-service-${params.ENVIRONMENT}"
+                        def serviceName = "products-api-ecs-${params.ENVIRONMENT}"
                         
                         sh """
                             aws ecs wait services-stable \
