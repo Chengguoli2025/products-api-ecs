@@ -5,12 +5,19 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/health")
 public class HealthController {
 
     @GetMapping
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("OK");
+    public ResponseEntity<Map<String, Object>> healthCheck() {
+        return ResponseEntity.ok(Map.of(
+            "status", "OK",
+            "version", "v1",
+            "time", LocalDateTime.now()
+        ));
     }
 }
