@@ -16,7 +16,7 @@ public class HealthController {
     public ResponseEntity<Map<String, Object>> healthCheck() {
         return ResponseEntity.ok(Map.of(
             "status", "OK",
-            "version", "v2",
+            "version", "v3",
             "time", LocalDateTime.now()
         ));
     }
