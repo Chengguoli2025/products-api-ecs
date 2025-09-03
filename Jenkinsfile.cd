@@ -25,6 +25,7 @@ pipeline {
             steps {
                 withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']]) {
                     sh 'aws sts get-caller-identity'
+                    sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}'
                 }
             }
         }
@@ -41,8 +42,16 @@ pipeline {
                             aws ecs update-service \
                                 --cluster ${clusterName} \
                                 --service ${serviceName} \
+                                --task-definition \$(aws ecs describe-services --cluster ${clusterName} --services ${serviceName} --query 'services[0].taskDefinition' --output text | sed 's|.*:||') \
                                 --force-new-deployment \
                                 --region ${AWS_REGION}
+                        """
+                        
+                        sh """
+                            TASK_DEF=\$(aws ecs describe-task-definition --task-definition \$(aws ecs describe-services --cluster ${clusterName} --services ${serviceName} --query 'services[0].taskDefinition' --output text) --region ${AWS_REGION})
+                            NEW_TASK_DEF=\$(echo \$TASK_DEF | jq --arg IMAGE "${imageUri}" '.taskDefinition | .containerDefinitions[0].image = \$IMAGE | del(.taskDefinitionArn) | del(.revision) | del(.status) | del(.requiresAttributes) | del(.placementConstraints) | del(.compatibilities) | del(.registeredAt) | del(.registeredBy)')
+                            aws ecs register-task-definition --region ${AWS_REGION} --cli-input-json "\$NEW_TASK_DEF"
+                            aws ecs update-service --cluster ${clusterName} --service ${serviceName} --task-definition \$(echo \$NEW_TASK_DEF | jq -r '.family'):\$(aws ecs describe-task-definition --task-definition \$(echo \$NEW_TASK_DEF | jq -r '.family') --query 'taskDefinition.revision' --output text --region ${AWS_REGION}) --region ${AWS_REGION}
                         """
                         
                         echo "Deployed ${imageUri} to ${params.ENVIRONMENT} environment"
