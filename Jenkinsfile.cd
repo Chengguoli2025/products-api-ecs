@@ -40,8 +40,19 @@ pipeline {
                         
                         sh """
                             CURRENT_TASK_DEF=\$(aws ecs describe-services --cluster ${clusterName} --services ${serviceName} --query 'services[0].taskDefinition' --output text --region ${AWS_REGION})
-                            aws ecs describe-task-definition --task-definition \$CURRENT_TASK_DEF --region ${AWS_REGION} | \
-                            jq --arg IMAGE "${imageUri}" '.taskDefinition | .containerDefinitions[0].image = \$IMAGE | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .placementConstraints, .compatibilities, .registeredAt, .registeredBy)' > new-task-def.json
+                            
+                            aws ecs describe-task-definition --task-definition \$CURRENT_TASK_DEF --region ${AWS_REGION} --query 'taskDefinition.{family:family,networkMode:networkMode,requiresCompatibilities:requiresCompatibilities,cpu:cpu,memory:memory,executionRoleArn:executionRoleArn,taskRoleArn:taskRoleArn,containerDefinitions:containerDefinitions}' > task-def-base.json
+                            
+                            # Update image in container definition
+                            python3 -c "
+import json
+import sys
+with open('task-def-base.json', 'r') as f:
+    task_def = json.load(f)
+task_def['containerDefinitions'][0]['image'] = '${imageUri}'
+with open('new-task-def.json', 'w') as f:
+    json.dump(task_def, f, indent=2)
+"
                             
                             NEW_REVISION=\$(aws ecs register-task-definition --cli-input-json file://new-task-def.json --region ${AWS_REGION} --query 'taskDefinition.taskDefinitionArn' --output text)
                             
