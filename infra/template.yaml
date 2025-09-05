@@ -190,6 +190,12 @@ Resources:
       VpcId: !Ref VPC
       TargetType: ip
       HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 30
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 3
+      Matcher:
+        HttpCode: 200
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -225,7 +231,7 @@ Resources:
             - Name: SPRING_PROFILE
               Value: !Ref Environment
           Essential: true
-          StartTimeout: 120
+          StartTimeout: 180
           StopTimeout: 30
           LogConfiguration:
             LogDriver: awslogs
