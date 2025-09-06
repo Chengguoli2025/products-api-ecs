@@ -190,10 +190,10 @@ Resources:
       VpcId: !Ref VPC
       TargetType: ip
       HealthCheckPath: /health
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 15
+      HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 3
+      UnhealthyThresholdCount: 8
       Matcher:
         HttpCode: 200
 
