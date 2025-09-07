@@ -71,3 +71,11 @@ Use /24 subnets (256 total, 251 usable after AWS reserves 5). Below shows 2 AZs 
 - Each environment lives in its own /18 island → impossible to overlap
 - You get at least 2 public + 2 private subnets per env now, and you can add many more later without touching other envs
 - Using /24 keeps IP management straightforward and avoids overly huge broadcast domains
+
+
+### Health check failed when deploy new service
+- HealthCheckPath: /health
+- HealthCheckIntervalSeconds: 15
+- HealthCheckTimeoutSeconds: 10
+- HealthyThresholdCount: 2
+- UnhealthyThresholdCount: 8
