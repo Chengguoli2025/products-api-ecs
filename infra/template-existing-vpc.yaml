@@ -83,6 +83,12 @@ Resources:
       VpcId: !Ref VpcId
       TargetType: ip
       HealthCheckPath: /health
+      HealthCheckIntervalSeconds: 15
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 2
+      UnhealthyThresholdCount: 8
+      Matcher:
+        HttpCode: 200
 
   Listener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -157,6 +163,7 @@ Resources:
         - ContainerName: products-api
           ContainerPort: 8090
           TargetGroupArn: !Ref TargetGroup
+      HealthCheckGracePeriodSeconds: 300
 
   TaskExecutionRole:
     Type: AWS::IAM::Role
