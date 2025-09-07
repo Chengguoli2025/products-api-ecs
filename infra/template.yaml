@@ -268,7 +268,7 @@ Resources:
         - ContainerName: products-api
           ContainerPort: 8090
           TargetGroupArn: !Ref TargetGroup
-      HealthCheckGracePeriodSeconds: 120
+      HealthCheckGracePeriodSeconds: 300
 
   TaskExecutionRole:
     Type: AWS::IAM::Role
