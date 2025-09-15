@@ -3,6 +3,23 @@
 ## Run application when local profile
 ./gradlew bootRun --args='--spring.profiles.active=local'
 
+## Run E2E tests
+./gradlew e2e
+
+Runs Cucumber-based end-to-end tests that:
+- Start Spring Boot app on random port with local profile
+- Execute @e2e tagged scenarios from src/test/resources/features/
+- Test health endpoint and product CRUD operations via REST API
+- Generate HTML report at build/reports/cucumber
+
+### How It Works
+1. **Test Runner**: Uses CucumberTestRunner with JUnit Platform
+2. **Feature Files**: Executes Cucumber features tagged with @e2e from src/test/resources/features/
+3. **Spring Context**: Loads full Spring Boot application via CucumberSpringConfiguration
+4. **Test Environment**: Runs with local profile on random port
+5. **Step Definitions**: Uses REST Assured to make HTTP calls to the running application
+6. **Test Flow**: Starts Spring Boot app → Executes health check and product CRUD scenarios → Generates HTML report
+
 ## Local build and push docker image to ecr
 docker build -t products-api .    
 docker tag products-api 427260910901.dkr.ecr.ap-southeast-2.amazonaws.com/products-api:latest   
