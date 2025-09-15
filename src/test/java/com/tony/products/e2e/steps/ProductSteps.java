@@ -38,7 +38,7 @@ public class ProductSteps {
         response = given()
                 .contentType("application/json")
                 .body(requestBody)
-                .queryParam("product_type", "STANDARD")
+                .queryParam("product_type", "SOFTWARE")
                 .when()
                 .post("/products");
     }
@@ -56,7 +56,7 @@ public class ProductSteps {
     @When("I get all products")
     public void iGetAllProducts() {
         response = given()
-                .queryParam("product_type", "STANDARD")
+                .queryParam("product_type", "SOFTWARE")
                 .when()
                 .get("/products");
     }
@@ -71,7 +71,7 @@ public class ProductSteps {
     @When("I get the product by id")
     public void iGetTheProductById() {
         response = given()
-                .queryParam("product_type", "STANDARD")
+                .queryParam("product_type", "SOFTWARE")
                 .when()
                 .get("/products/" + productId);
     }
@@ -86,7 +86,7 @@ public class ProductSteps {
     @When("I delete the product")
     public void iDeleteTheProduct() {
         response = given()
-                .queryParam("product_type", "STANDARD")
+                .queryParam("product_type", "SOFTWARE")
                 .when()
                 .delete("/products/" + productId);
     }
